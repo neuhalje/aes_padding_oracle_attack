@@ -7,24 +7,8 @@ class FindPaddingTest extends spock.lang.Specification {
 
     final String PLAINTEXT_THE_SIZE_OF_AES_AN_BLOCK = "1234567890abcdef"
 
-
-    def "the attack guesses the padding length"() {
-
-        given:
-        def oracle = PaddingOracleFactory.newOracleWithKnownText(PLAINTEXT_THE_SIZE_OF_AES_AN_BLOCK + "1234567890")
-        def sut = new FindPadding()
-
-        when:
-
-        def padLen = sut.guessPaddingLen(oracle)
-
-        then:
-
-        padLen == 6
-    }
-
     @Unroll
-    def "the attack guesses the paddings of #length"() {
+    def "the attack guesses the padding of #length"() {
 
         given:
         int lastBlockLength = 16 - length
