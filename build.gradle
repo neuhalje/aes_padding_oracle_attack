@@ -1,0 +1,21 @@
+//apply plugin: 'java'
+apply plugin: "groovy"
+
+sourceCompatibility = 1.5
+version = '1.0'
+description = "Padding Oracle - Example Project"
+
+repositories {
+    mavenCentral()
+    // Spock snapshots are available from the Sonatype OSS snapshot repository
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+dependencies {
+    compile "org.codehaus.groovy:groovy-all:2.3.6"
+    testCompile "org.spockframework:spock-core:1.0-groovy-2.3-SNAPSHOT"
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.2'
+}
