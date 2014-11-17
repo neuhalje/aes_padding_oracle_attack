@@ -18,6 +18,9 @@ import java.util.Arrays;
 public class EncryptionWrapper {
     private static final int AES_KEYLEN_IN_BITS = 128;
     private static final int AES_BLOCKLEN_IN_BYTES = 16;
+//    public static final String HMAC_ALGORITHM = "HmacSHA1";
+    public static final String HMAC_ALGORITHM = "HmacSHA512";
+    public static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5Padding";
 
     private final SecretKey secretKey;
 
@@ -37,7 +40,7 @@ public class EncryptionWrapper {
         // Encrypt the plaintext
         SecretKey secretKeyInAESFormat = new SecretKeySpec(secretKey.getEncoded(), "AES");
 
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.ENCRYPT_MODE, secretKeyInAESFormat);
         AlgorithmParameters params = cipher.getParameters();
         byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
@@ -45,12 +48,16 @@ public class EncryptionWrapper {
 
 
         // Sign the plaintext
-        SecretKeySpec signingKey = new SecretKeySpec(secretKey.getEncoded(), "HmacSHA1");
-        Mac mac = Mac.getInstance("HmacSHA1");
-        mac.init(signingKey);
-        byte[] hmac = mac.doFinal(plaintext);
+        byte[] hmac = createSignature(plaintext, HMAC_ALGORITHM);
 
         return new CipherText(iv, ciphertext, hmac);
+    }
+
+    public byte[] createSignature(byte[] plaintext, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
+        SecretKeySpec signingKey = new SecretKeySpec(secretKey.getEncoded(), algorithm);
+        Mac mac = Mac.getInstance(algorithm);
+        mac.init(signingKey);
+        return mac.doFinal(plaintext);
     }
 
     /**
@@ -62,7 +69,7 @@ public class EncryptionWrapper {
     public byte[] decrypt(CipherText ciphertext) throws InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException {
         SecretKey secretKeyInAESFormat = new SecretKeySpec(secretKey.getEncoded(), "AES");
 
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5_PADDING);
         cipher.init(Cipher.DECRYPT_MODE, secretKeyInAESFormat, new IvParameterSpec(ciphertext.iv));
         byte[] plaintext = cipher.doFinal(ciphertext.ciphertext);
 
@@ -71,15 +78,19 @@ public class EncryptionWrapper {
 
 
     public boolean isSignatureCorrect(byte[] toBeChecked, byte[] hmacSignature) throws NoSuchAlgorithmException, InvalidKeyException {
+        return  isSignatureCorrect(toBeChecked, hmacSignature, HMAC_ALGORITHM);
+    }
+
+
+     boolean isSignatureCorrect(byte[] toBeChecked, byte[] hmacSignature, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
         // Sign
-        SecretKeySpec signingKey = new SecretKeySpec(secretKey.getEncoded(), "HmacSHA1");
-        Mac mac = Mac.getInstance("HmacSHA1");
+        SecretKeySpec signingKey = new SecretKeySpec(secretKey.getEncoded(), algorithm);
+        Mac mac = Mac.getInstance(algorithm);
         mac.init(signingKey);
         byte[] hmac = mac.doFinal(toBeChecked);
 
         return Arrays.equals(hmac, hmacSignature);
     }
-
     public int getBlockLengthInBytes() {
         return AES_BLOCKLEN_IN_BYTES;
     }
