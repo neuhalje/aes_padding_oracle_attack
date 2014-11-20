@@ -57,9 +57,6 @@ public class DecipherBlockAttack {
 
         // now find plaintext[(padLen - 1)]
 
-        //      // last byte of block cn-1
-        //   byte Cn_1Idx = (byte) (ciphertext.length - oracle.getBlockLengthInBytes() - 1);
-        // last byte of block cn-1
         byte Cn_1Idx = (byte) (lastByte - padLen - 15);
         byte Cn_1 = originalCipherText.ciphertext[Cn_1Idx];
 

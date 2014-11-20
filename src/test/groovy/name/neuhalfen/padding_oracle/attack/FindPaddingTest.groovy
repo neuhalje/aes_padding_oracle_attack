@@ -1,5 +1,6 @@
 package name.neuhalfen.padding_oracle.attack
 
+import name.neuhalfen.padding_oracle.CipherText
 import name.neuhalfen.padding_oracle.oracle.PaddingOracleFactory
 import spock.lang.Unroll
 

@@ -56,4 +56,10 @@ public class PaddingOracle {
     public int getBlockLengthInBytes() {
         return encryptionWrapper.getBlockLengthInBytes();
     }
+
+
+    @Override
+    public String toString() {
+        return String.format("{ secretMessage:'%s', encryptionWrapper: %s }", secretMessage, encryptionWrapper.toString());
+    }
 }

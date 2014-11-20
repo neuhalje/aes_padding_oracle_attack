@@ -66,4 +66,18 @@ class EncryptionWrapperTest extends spock.lang.Specification {
     }
 
 
+    def "toString() works"() {
+        given:
+        def sut = new EncryptionWrapper("s3cr3t".getChars())
+
+        when:
+
+        String toString = sut.toString()
+        then:
+
+        toString.contains("algorithm:'PBKDF2WithHmacSHA1'")
+        toString.contains("format:'RAW'")
+        toString.contains("encoded:'")
+    }
+
 }

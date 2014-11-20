@@ -1,6 +1,7 @@
 package name.neuhalfen.padding_oracle.oracle;
 
 import name.neuhalfen.padding_oracle.CipherText;
+import sun.misc.BASE64Encoder;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -90,5 +91,12 @@ public class EncryptionWrapper {
     }
     public int getBlockLengthInBytes() {
         return AES_BLOCKLEN_IN_BYTES;
+    }
+
+    @Override
+    public String toString() {
+        BASE64Encoder base64 =  new BASE64Encoder();
+
+        return  String.format("{ algorithm:'%s', format:'%s', encoded:'%s' }", secretKey.getAlgorithm(), secretKey.getFormat(), base64.encode(secretKey.getEncoded()) );
     }
 }
