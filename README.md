@@ -3,9 +3,11 @@ Using a Padding Oracle to crack AES in CBC mode
 
 Incidents like the recent [POODLE](https://www.openssl.org/~bodo/ssl-poodle.pdf) attack have shown that block ciphers in [CBC Mode](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher-block_chaining_.28CBC.29) are vulnerable to certain attacks.
 
-This repository implements an example attack against single blocks of AES-CBC encrypted ciphertext using a _padding oracle_ to determine the plaintext.  This is by no means an attack tool, it merely serves as an example for the padding oracle attack. 
+This repository implements an example attack against single blocks of AES-CBC encrypted ciphertext using a _padding oracle_ to determine the plaintext.  This is by no means an attack tool, it merely serves as an educational example for the padding oracle attack. 
 
-The source should be read starting from the [tests](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle).
+AES is not broken, padding oracle attacks are by no means new. But crypto is hard, and that leaking seemingly innocent information ("Is the plaintext padded correctly?") can have disastrous effects. Leaking information can happen by seemingly innocent ways, for a completely unrelated example see the Monty Hall 'paradoxon'.
+
+The idea is that you read this text, and then dive into the source, starting from the [tests](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle).
 
 How does it work?
 ---------------------
@@ -125,13 +127,15 @@ etc.
 * The [tests for CBC mode](https://github.com/neuhalje/padding_oracle/blob/master/src/test/groovy/name/neuhalfen/padding_oracle/cbc/DemonstrateCBCTest.groovy) show, how the manipulation works
 * An attack agains a block is implemented [here](https://github.com/neuhalje/padding_oracle/blob/master/src/test/groovy/name/neuhalfen/padding_oracle/attack/FindPaddingTest.groovy) and [here](https://github.com/neuhalje/padding_oracle/blob/master/src/test/groovy/name/neuhalfen/padding_oracle/attack/DecipherBlockAttackTest.groovy)
 
-### How to decrypt `P[14]`?
+### How to decrypt `Pn[14]` ... `Pn[0]`?
 
-Decrypting `P[14]` works by extending the padding to a two byte padding. In other words: Set `P[15]` to 2, and use the oracle to find a `Cn-1[14]` that decrypts to 2.
+Decrypting `Pn[14]` works by extending the padding to a two byte padding. In other words: Set `Pn[15]` to 2, and use the oracle to find a `Cn-1[14]` that decrypts to 2.
 
 ```python
 Cn-1[15] = Pn*[15] XOR 2 -- This decrypts Pn[15] to Pn*[15] XOR Pn*[15] XOR 2 = 2
 ```
+
+Forcing `Pn[15]` to a specific value is quite easy, when the plaintext is known. It is only necessary to manipulate `Cn-1[15]` (see above for the pseudo code).
 
 ### How to decrypt the other blocks?
 
