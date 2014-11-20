@@ -58,7 +58,7 @@ public class FindPadding {
             return original_cn_1_dash;
         } else {
             // FIXME: In theory, this should never happen. But it does.
-            throw new RuntimeException("Unable to manipulate the ciphertext for index " + Cn_1Idx + ", so that it gets a valid padding");
+            throw new RuntimeException("Unable to get valid padding for index " + Cn_1Idx + "\nOracle: " + oracle.toString() + "\nTampered Ciphertext: " + tamperedCipherText.toString());
         }
     }
 

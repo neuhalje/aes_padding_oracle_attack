@@ -112,7 +112,7 @@ public class DecipherBlockAttack {
             return original_cn_1_dash;
         } else {
             // FIXME: In theory, this should never happen. But it does.
-            throw new RuntimeException("Unable to get valid padding for index " + Cn_1Idx);
+            throw new RuntimeException("Unable to get valid padding for index " + Cn_1Idx + "\nOracle: " + oracle.toString() + "\nOriginal Ciphertext: " + originalCipherText.toString());
         }
     }
 }
