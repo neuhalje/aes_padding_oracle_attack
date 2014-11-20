@@ -83,11 +83,8 @@ public class EncryptionWrapper {
 
 
      boolean isSignatureCorrect(byte[] toBeChecked, byte[] hmacSignature, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException {
-        // Sign
-        SecretKeySpec signingKey = new SecretKeySpec(secretKey.getEncoded(), algorithm);
-        Mac mac = Mac.getInstance(algorithm);
-        mac.init(signingKey);
-        byte[] hmac = mac.doFinal(toBeChecked);
+
+        byte[] hmac = createSignature(toBeChecked,HMAC_ALGORITHM);
 
         return Arrays.equals(hmac, hmacSignature);
     }

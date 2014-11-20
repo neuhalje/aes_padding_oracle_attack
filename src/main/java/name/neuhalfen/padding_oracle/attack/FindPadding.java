@@ -26,7 +26,9 @@ public class FindPadding {
         return Pn;
     }
 
-    byte findCn_1_dash(PaddingOracle oracle, final  byte Cn_1Idx, final CipherText tamperedCipherText) throws GeneralSecurityException {
+    byte findCn_1_dash(PaddingOracle oracle, final byte Cn_1Idx, final CipherText tamperedCipherText) throws GeneralSecurityException {
+
+        boolean hasHitGoodSignature = false;
 
         byte original_cn_1_dash = tamperedCipherText.ciphertext[Cn_1Idx];
 
@@ -36,6 +38,7 @@ public class FindPadding {
             switch (oracle.replayCiphertext(tamperedCipherText)) {
                 case OK:
                     // we can ignore this, as this was the "original" content of the ciphertext
+                    hasHitGoodSignature = true;
                     break;
 
                 case PADDING_INVALID:
@@ -50,8 +53,13 @@ public class FindPadding {
             }
         }
 
-        // Unable to trigger a MAC_INVALID? --> The padding must have been 0x01
-        return original_cn_1_dash;
+        // Unable to trigger a MAC_INVALID? --> The padding must have been correct
+        if (hasHitGoodSignature) {
+            return original_cn_1_dash;
+        } else {
+            // FIXME: In theory, this should never happen. But it does.
+            throw new RuntimeException("Unable to manipulate the ciphertext for index " + Cn_1Idx + ", so that it gets a valid padding");
+        }
     }
 
 }

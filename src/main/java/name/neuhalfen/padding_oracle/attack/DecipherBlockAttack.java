@@ -12,7 +12,7 @@ public class DecipherBlockAttack {
     private final CipherText originalCipherText;
     private final int blockIdx;
     private final byte[] plaintext;
-    private  CipherText tamperedCipherText;
+    private CipherText tamperedCipherText;
 
 
     /**
@@ -83,36 +83,39 @@ public class DecipherBlockAttack {
 
     byte findCn_1_dash(final byte Cn_1Idx) throws GeneralSecurityException {
 
-        boolean found = false;
+        boolean hasHitGoodSignature = false;
 
         byte original_cn_1_dash = originalCipherText.ciphertext[Cn_1Idx];
-
-        for (byte cn_1_dash = Byte.MIN_VALUE; cn_1_dash < Byte.MAX_VALUE; cn_1_dash++) {
+        byte cn_1_dash;
+        for (cn_1_dash = Byte.MIN_VALUE; cn_1_dash < Byte.MAX_VALUE; cn_1_dash++) {
             tamperedCipherText.ciphertext[Cn_1Idx] = cn_1_dash;
 
             switch (oracle.replayCiphertext(tamperedCipherText)) {
                 case OK:
                     // we can ignore this, as this was the "original" content of the ciphertext
-                    found = true;
+                    hasHitGoodSignature = true;
+                    assert cn_1_dash == original_cn_1_dash;
                     break;
 
                 case PADDING_INVALID:
-                    // failure: the decrypted last byte is not a valid padding
+                    // failure: the decrypted last byte(s) are not a valid padding
                     break;
 
                 case MAC_INVALID:
                     // We have a valid padding, but not the original padding (--> that would be "MAC OK")
                     // the situation is the following:
-                    // The last byte ('P[lastByteIdx]') of the (tampered) plaintext is a valid padding
+                    // The last byte(s) ('P[lastByteIdx]') of the (tampered) plaintext are a valid padding
+                    assert cn_1_dash != original_cn_1_dash;
                     return cn_1_dash;
             }
         }
 
         // Unable to trigger a MAC_INVALID? --> The padding must have been correct
-        if (found) {
+        if (hasHitGoodSignature) {
             return original_cn_1_dash;
-        }else{
-            throw new RuntimeException("Unable to manipulate the ciphertext for index " + Cn_1Idx + ", so that it gets a valid padding");
+        } else {
+            // FIXME: In theory, this should never happen. But it does.
+            throw new RuntimeException("Unable to get valid padding for index " + Cn_1Idx);
         }
     }
 }
