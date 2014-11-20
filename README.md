@@ -5,22 +5,31 @@ Incidents like the recent [POODLE](https://www.openssl.org/~bodo/ssl-poodle.pdf)
 
 This repository implements an example attack against single blocks of AES-CBC encrypted ciphertext using a _padding oracle_ to determine the plaintext.  This is by no means an attack tool, it merely serves as an educational example for the padding oracle attack. 
 
-AES is not broken, padding oracle attacks are by no means new. But crypto is hard, and that leaking seemingly innocent information ("Is the plaintext padded correctly?") can have disastrous effects. Leaking information can happen by seemingly innocent ways, for a completely unrelated example see the Monty Hall 'paradoxon'.
+AES is not broken and padding oracle attacks are by no means new. But crypto is hard, and leaking seemingly innocent information (_Is the plaintext padded correctly?_) can have disastrous effects. Leaking information can happen by seemingly innocent ways, for a completely unrelated example see the Monty Hall 'paradoxon'.
 
 The idea is that you read this text, and then dive into the source, starting from the [tests](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle).
+
+Tests
+-------
+**TL;DR;** Here are the tests that demonstrate the techniques used to achieve the goal. The tests (examples) build upon each other:
+
+* [Demonstration on CBC ciphertext manipulation](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle/cbc/DemonstrateCBCTest.groovy)
+* [Demonstration how to find the padding of a ciphertext block](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle/attack/FindPaddingTest.groovy)
+* [Demonstration how to decrypt a ciphertext block](https://github.com/neuhalje/padding_oracle/tree/master/src/test/groovy/name/neuhalfen/padding_oracle/attack/DecipherBlockAttackTest.groovy)
+
 
 How does it work?
 ---------------------
 
 The attacks needs three things:
 
-* Prior encryption the plaintext has been padded according to [PKCS#7](https://en.wikipedia.org/wiki/PKCS) (others work as well)
+* Prior encryption the plaintext has been padded according to [PKCS#7](https://en.wikipedia.org/wiki/PKCS)
 * A ciphertext encrypted with a blockcipher in CBC mode (e.g. AES-CBC)
 * The oracle that tells me (the attacker), if a ciphertext I send it decrypts to a plaintext with valid padding
 
 ### Padding with PKCS#7
 
-AES (and many other) ciphers are so called _block ciphers_. The name comes from the fact that they operate in units of blocks (often 64 or 128 bit long) instead of single bytes (so called _stram ciphers_, e.g. RC4). Blocks ciphers cannot encrypt plaintext that is not a multiple of the block length.
+AES (and many other) ciphers are so called _block ciphers_. The name comes from the fact that they operate in units of blocks (often 64 or 128 bit long) instead of single bytes (so called _stream ciphers_, e.g. RC4). Blocks ciphers cannot encrypt plaintext that is not a multiple of the block length.
 
 In AES the block length is 128 bit, that is 16 bytes. If [Alice](https://en.wikipedia.org/wiki/Alice_and_Bob) wants to encrypt 10 bytes of plaintext (_Hello Bob!_) she needs to pad (fill up) the 10 byte message to 16 bytes. When Bob decrypts the message he needs to strip the padding.
 
@@ -28,7 +37,7 @@ This can be done, if Alice and Bob agree on a padding scheme. One such scheme is
 
 E.g.
 
-`Hello_Bob!` (10 bytes long) becomes `Hello_Bob!\6\6\6\6\6\6`  (16 bytes, the last 6 bytes have the value 6). `Hi` (2 bytes) is padded to `Hi14\14\14\14\14\14\14\14\14\14\14\14\14\14` (16 bytes, the last 14 bytes have the value 14).
+`Hello_Bob!` (10 bytes long) becomes `Hello_Bob!\6\6\6\6\6\6`  (16 bytes, the last 6 bytes have the value 6). `Hi` (2 bytes) is padded to `Hi\14\14\14\14\14\14\14\14\14\14\14\14\14\14` (16 bytes, the last 14 bytes have the value 14).
 
 Messages that end on a block size (e.g. message of 16 bytes) must _also_ be padded. This is done by appending a complete padding block `16 16 .... 16`.
 
@@ -47,7 +56,7 @@ while plaintext.hasMoreBlocks
 ```
 
 #### ECB 
-This is called the [ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29) mode (Electronik Code Book mode). ECB has several problems, for example the same plaintext block always encrypts to the same ciphertext block (under the same key). Say you have chat program that uses the following message format:
+The naive implementation above is called the [ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29) mode (Electronic Code Book mode). ECB has several problems, for example the same plaintext block always encrypts to the same ciphertext block (under the same key). Say you have chat program that uses the following message format:
 
 ```C
 struct message {
@@ -57,7 +66,9 @@ struct message {
 }
 ```
 
-When these messages are encrypted using ECB, then an attacker cannot _decipher_ `sender` oder  `recipient`, but Alice ID always encrypts to the same 16 bytes. Once the attacker knows what the byte order for Alice is, he can detect all of Alice communications. Have a look at the [example](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29) in Wikipedia!
+When these messages are encrypted using ECB, then an attacker cannot _decipher_ `sender` oder  `recipient`, but Alice ID always encrypts to the same 16 bytes. Once the attacker knows what the byte order for Alice is, he can detect all of Alice communications. In other words: an attacker can see that Alice wrote to Bob by just seeing the ciphertext. 
+
+There is a great [example](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29) in Wikipedia that shows what happens, when images are encrypted with ECB mode!
 
 ### CBC Mode
 
@@ -75,16 +86,27 @@ ciphertextBlock= initialisationVector
 while plaintext.hasMoreBlocks
     plaintextBlock= plaintext.nextBlock
     plaintextBlock= plaintextBlock XOR ciphertextBlock
-    ciphertextBlock= AES.tencrypt(plaintextBlock)
+    ciphertextBlock= AES.encrypt_ECB(plaintextBlock)
     cipherTextStream.write(ciphertextBlock)
+
+
+--- CBC decryption
+lastCiphertextBlock= initialisationVector
+while ciphertext.hasMoreBlocks
+    ciphertextBlock= ciphertext.nextBlock
+    plaintextBlock= AES.decrypt_ECB(ciphertextBlock)
+    plaintextBlock= plaintextBlock XOR lastCiphertextBlock
+    plaintextTextStream.write(plaintextBlock)
+    lastCiphertextBlock= ciphertextBlock
 ```
 
 The _Initialisation Vector_ needs to be transmitted together with the ciphertext but does not need to be kept secret. It acts as "ciphertext 0".
 
+CBC mode is widely used, e.g. in SSL and SSH.
 
 ## The Oracle Attack
 
-The _Oracle_ is a server that gives away an important information:  _Is this ciphertext padded correctly?_ The answer can either be transmitted as part of the protocol, or be infered from timing differences. The attack utilizes this information to infer the plaintext.
+The _Oracle_ is a server that gives away an important information:  _Is decrypting this ciphertext padded correctly?_ The answer can either be transmitted as part of the protocol, or be infered from timing differences. The attack utilizes this information to infer the plaintext.
 
 ### Glossary
 * `Cn` : the last block of ciphertext
@@ -103,16 +125,18 @@ Pn* = ECB_Decrypt(Cn)
 Pn  = Pn* XOR Cn-1
 ```
 
-When the attacker manipulates the last byte of `Cn-1` (`Cn-1[15]`) the last byte of `Pn` (`Pn[15]`) is changed. The idea is to force `Pn[15]` to the value `1`.
+When the attacker manipulates the last byte of `Cn-1` (`Cn-1[15]`) the last byte of `Pn` (`Pn[15]`) is changed. The idea is to force `Pn[15]` to the value `1` by manipulating the ciphertext, and utilizing the padding oracle.
 
-When we know `Pn[15] == 1`, and we know `Cn-1[15]` we also know `Pn*[15]`! 
+Why? Thats why:  When we know `Pn[15] == 1`, and we know `Cn-1[15]` we also know `Pn*[15]`! 
 
 ```python
      Pn  = Pn* XOR Cn-1  --- XOR Cn-1
  <=> Pn XOR Cn-1  = Pn*  --- when we know Pn and Cn-1, we know Pn*
 ```
 
-The question now is: how do we know, that the Oracle decrypts the manipulated ciphertext to `Pn[15] == 1`? Any plaintext ending in  `1` has a valid PKCS#7 padding (of 1 byte). For nearly all other values the orcale will yield a padding error. So when the oracle doesn't return a padding error, the decrpyted ciphertext most likely ends in `1`.
+The question now is: how do we know, that we guessed the correct tampering of `Cn[15]` and the Oracle decrypts the manipulated ciphertext to `Pn[15] == 1`? 
+
+Any plaintext ending in  `1` has a valid PKCS#7 padding (of 1 byte). For nearly all other values the orcale will yield a padding error. So when the oracle doesn't return a padding error, the decrpyted ciphertext most likely ends in `1`.
 
 ```text
 --- valid paddings
